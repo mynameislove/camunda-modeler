@@ -12,11 +12,22 @@ import debug from 'debug';
 
 import eventHandlers from './event-handlers';
 
-import { PureComponent } from 'react';
+import React, {
+  Fragment,
+  PureComponent
+} from 'react';
+
+import { Fill } from '../../app/slot-fill';
 
 import Flags, { MIXPANEL_TOKEN, DISABLE_REMOTE_INTERACTION } from '../../util/Flags';
 
 import Mixpanel from './Mixpanel';
+
+import classNames from 'classnames';
+
+import css from './UserJourneyStatistics.less';
+
+import { UserFeedbackOverlay } from './UserFeedbackOverlay';
 
 const log = debug('UsageStatistics');
 
@@ -49,7 +60,13 @@ export default class UserJourneyStatistics extends PureComponent {
 
     this._eventHandlers = [];
 
+    this._buttonRef = React.createRef(null);
+
     this.mixpanel = Mixpanel.getInstance();
+
+    this.state = {
+      open: false
+    };
 
     eventHandlers.forEach((eventHandlerConstructor) => {
       this._eventHandlers.push(new eventHandlerConstructor({
@@ -129,7 +146,42 @@ export default class UserJourneyStatistics extends PureComponent {
      return this.disable();
    }
 
+   toggle = () => {
+     this.setState(state => ({ ...state, open: !state.open }));
+   }
+
    render() {
-     return null;
+
+     const {
+       _buttonRef: buttonRef
+     } = this;
+
+     const {
+       open
+     } = this.state;
+
+     console.log(buttonRef);
+
+     return (
+       <Fragment>
+         <Fill slot="status-bar__app" group="test">
+           <button
+             className={ classNames('btn', { 'btn--active': open }, css.UserJourneyStatistics) }
+             title="Provide Feedback"
+             onClick={ this.toggle }
+             ref={ buttonRef }
+           >
+             test
+           </button>
+         </Fill>
+         {
+           open && <UserFeedbackOverlay
+             anchor={ buttonRef.current }
+             onClose={ () => this.setState({ open: false }) }
+
+           />
+         }
+       </Fragment>
+     );
    }
 }
