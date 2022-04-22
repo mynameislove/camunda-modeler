@@ -28,7 +28,7 @@ import { getFormEditMenu } from './getFormEditMenu';
 
 import { active as isInputActive } from '../../../util/dom/isInput';
 
-import { FormEditor as Form } from './editor/FormEditor';
+import { FormEditor as Form, Playground } from './editor/FormEditor';
 
 import Metadata from '../../../util/Metadata';
 
@@ -89,7 +89,6 @@ export class FormEditor extends CachedComponent {
   }
 
   componentDidMount() {
-    this._isMounted = true;
 
     let { form } = this.getCached();
 
@@ -99,7 +98,12 @@ export class FormEditor extends CachedComponent {
       form.attachTo(this.ref.current);
     }
 
-    this.checkImport();
+    // wait a couple of secs to playground be rendered
+    // todo: how to wait properly?
+    setTimeout(() => {
+      this._isMounted = true;
+      this.checkImport();
+    }, 200);
   }
 
   componentWillUnmount() {
@@ -163,7 +167,12 @@ export class FormEditor extends CachedComponent {
     try {
       const schemaJSON = JSON.parse(schema);
 
-      ({ error, warnings } = await form.importSchema(schemaJSON));
+      const result = form.setSchema(schemaJSON);
+
+      if (result) {
+        ({ error, warnings } = result);
+      }
+
     } catch (err) {
       error = err;
 
@@ -180,9 +189,13 @@ export class FormEditor extends CachedComponent {
   handleImport(error, warnings) {
     const { form } = this.getCached();
 
-    const commandStack = form.get('commandStack');
+    const formEditor = form.getFormEditor();
 
-    const stackIdx = commandStack._stackIdx;
+    // todo: handle command stack
+
+    // const commandStack = form.get('commandStack');
+
+    // const stackIdx = commandStack._stackIdx;
 
     const {
       onImport,
@@ -206,7 +219,8 @@ export class FormEditor extends CachedComponent {
       this.setCached({
         engineProfile,
         lastSchema: schema,
-        stackIdx
+
+        // stackIdx
       });
 
       this.handleLinting();
@@ -243,7 +257,10 @@ export class FormEditor extends CachedComponent {
 
     const { form } = this.getCached();
 
-    const commandStack = form.get('commandStack');
+    const formEditor = form.getFormEditor();
+
+    // todo: handle undo redo (in form editor?)
+    // const commandStack = formEditor.get('commandStack');
 
     const inputActive = isInputActive();
 
@@ -251,11 +268,13 @@ export class FormEditor extends CachedComponent {
       defaultUndoRedo: inputActive,
       dirty: this.isDirty(),
       inputActive,
-      redo: commandStack.canRedo(),
+
+      // redo: commandStack.canRedo(),
       removeSelected: inputActive,
       save: true,
       selectAll: true,
-      undo: commandStack.canUndo()
+
+      // undo: commandStack.canUndo()
     };
 
     if (isFunction(onChanged)) {
@@ -299,9 +318,15 @@ export class FormEditor extends CachedComponent {
       stackIdx
     } = this.getCached();
 
-    const commandStack = form.get('commandStack');
+    const formEditor = form.getFormEditor();
 
-    return commandStack._stackIdx !== stackIdx;
+    // todo: handle form editor command stack
+
+    return false;
+
+    // const commandStack = form.get('commandStack');
+
+    // return commandStack._stackIdx !== stackIdx;
   }
 
   getXML() {
@@ -310,7 +335,9 @@ export class FormEditor extends CachedComponent {
       lastSchema
     } = this.getCached();
 
-    const commandStack = form.get('commandStack');
+    const formEditor = form.getFormEditor().current;
+
+    const commandStack = formEditor.get('commandStack');
 
     const stackIdx = commandStack._stackIdx;
 
@@ -318,7 +345,7 @@ export class FormEditor extends CachedComponent {
       return lastSchema || this.props.xml;
     }
 
-    const schema = JSON.stringify(form.saveSchema(), null, 2);
+    const schema = JSON.stringify(formEditor.saveSchema(), null, 2);
 
     this.setCached({
       lastSchema: schema,
@@ -331,15 +358,19 @@ export class FormEditor extends CachedComponent {
   triggerAction(action, context) {
     const { form } = this.getCached();
 
-    const editorActions = form.get('editorActions');
+    const formEditor = form.getFormEditor() && form.getFormEditor.current;
 
-    if (action === 'showLintError') {
-      editorActions.trigger('selectFormField', context);
-    }
+    // todo: handle form editor actions
 
-    if (editorActions.isRegistered(action)) {
-      return editorActions.trigger(action, context);
-    }
+    // const editorActions = formEditor.get('editorActions');
+
+    // if (action === 'showLintError') {
+    //   editorActions.trigger('selectFormField', context);
+    // }
+
+    // if (editorActions.isRegistered(action)) {
+    //   return editorActions.trigger(action, context);
+    // }
   }
 
   render() {
@@ -401,30 +432,33 @@ export class FormEditor extends CachedComponent {
       version
     } = Metadata;
 
-    const form = new Form({
+    const playground = new Playground({
       exporter: {
         name,
         version
       }
     });
 
-    const commandStack = form.get('commandStack');
+    // const form = playground.getFormEditor();
 
-    const stackIdx = commandStack._stackIdx;
+    // const commandStack = form.get('commandStack');
+
+    // const stackIdx = commandStack._stackIdx;
 
     onAction('emit-event', {
       type: 'form.modeler.created',
-      payload: form
+      payload: playground
     });
 
     return {
       __destroy: () => {
-        form.destroy();
+        playground.destroy();
       },
       engineProfile: null,
-      form,
+      form: playground,
       lastSchema: null,
-      stackIdx
+
+      // stackIdx
     };
   }
 }
